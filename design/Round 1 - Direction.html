@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>focus timer — design exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@200;300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+  /* rose-pine main palette */
+  :root {
+    --rp-base: #191724;
+    --rp-surface: #1f1d2e;
+    --rp-overlay: #26233a;
+    --rp-muted: #6e6a86;
+    --rp-subtle: #908caa;
+    --rp-text: #e0def4;
+    --rp-love: #eb6f92;
+    --rp-gold: #f6c177;
+    --rp-rose: #ebbcba;
+    --rp-pine: #31748f;
+    --rp-foam: #9ccfd8;
+    --rp-iris: #c4a7e7;
+    --rp-hl-low: #21202e;
+    --rp-hl-med: #403d52;
+    --rp-hl-high: #524f67;
+  }
+  /* rose-pine dawn (light) */
+  .light {
+    --rp-base: #faf4ed;
+    --rp-surface: #fffaf3;
+    --rp-overlay: #f2e9e1;
+    --rp-muted: #9893a5;
+    --rp-subtle: #797593;
+    --rp-text: #575279;
+    --rp-love: #b4637a;
+    --rp-gold: #ea9d34;
+    --rp-rose: #d7827e;
+    --rp-pine: #286983;
+    --rp-foam: #56949f;
+    --rp-iris: #907aa9;
+    --rp-hl-low: #f4ede8;
+    --rp-hl-med: #dfdad9;
+    --rp-hl-high: #cecacd;
+  }
+</style>
+</head>
+<body>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+
+<script type="text/babel">
+const { useState } = React;
+
+// --- shared mock content ---
+const dotsRow = (current, completed, total = 4, longAfter = 2, phase = 'focus') => {
+  const items = [];
+  for (let i = 0; i < total; i++) {
+    if (i === longAfter) items.push({ type: 'long', state: completed > longAfter ? 'done' : (completed === longAfter && phase === 'long' ? 'current' : 'pending') });
+    items.push({ type: 'focus', state: i < completed ? 'done' : (i === completed && phase === 'focus' ? 'current' : 'pending') });
+  }
+  return items;
+};
+
+const Dots = ({ current, completed, phase }) => {
+  const items = dotsRow(current, completed, 4, 2, phase);
+  return (
+    <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'center' }}>
+      {items.map((it, idx) => {
+        if (it.type === 'long') {
+          const bg = it.state === 'done' ? 'var(--rp-pine)' : it.state === 'current' ? 'var(--rp-gold)' : 'var(--rp-muted)';
+          return <div key={idx} style={{ width: 2, height: 22, background: bg }} />;
+        }
+        const bg = it.state === 'done' ? 'var(--rp-pine)' : it.state === 'current' ? 'var(--rp-iris) ' : 'transparent';
+        const border = it.state === 'pending' ? '1px solid var(--rp-muted)' : 'none';
+        return <div key={idx} style={{ width: 14, height: 14, borderRadius: '50%', background: bg, border }} />;
+      })}
+    </div>
+  );
+};
+
+// phase number colors (rose-pine) — focus is foam (longest, most-seen color)
+const phaseColor = (phase) =>
+  phase === 'focus' ? 'var(--rp-foam)' :
+  phase === 'short' ? 'var(--rp-iris)' :
+  phase === 'long' ? 'var(--rp-gold)' : 'var(--rp-text)';
+
+// --------- Variation 1: "Pure CLI" — terminal window, prompt-style chrome ---------
+const V1 = ({ phase, time, mode }) => (
+  <div className={mode} style={{
+    width: 1200, height: 760, background: 'var(--rp-base)', color: 'var(--rp-text)',
+    fontFamily: "'JetBrains Mono', monospace", display: 'flex', flexDirection: 'column'
+  }}>
+    {/* terminal title bar */}
+    <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid var(--rp-hl-med)', background: 'var(--rp-surface)', fontSize: 12, color: 'var(--rp-subtle)' }}>
+      <div style={{ display: 'flex', gap: 6, marginRight: 14 }}>
+        <div style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--rp-love)' }}></div>
+        <div style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--rp-gold)' }}></div>
+        <div style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--rp-foam)' }}></div>
+      </div>
+      <span>~ / focus-timer — bash</span>
+    </div>
+    {/* main */}
+    <div style={{ flex: 1, padding: '32px 48px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ color: 'var(--rp-subtle)', fontSize: 13, marginBottom: 8 }}>
+        <span style={{ color: 'var(--rp-iris)' }}>$</span> focus --start --preset focus
+      </div>
+      <div style={{ color: 'var(--rp-muted)', fontSize: 13, marginBottom: 24 }}>
+        [<span style={{ color: 'var(--rp-foam)' }}>{phase}</span>] session 2 of 4 · est. finish 14:25
+      </div>
+      <div style={{ fontSize: 220, fontWeight: 200, lineHeight: 1, letterSpacing: '-0.04em', color: phaseColor(phase), fontVariantNumeric: 'tabular-nums' }}>{time}</div>
+      <div style={{ marginTop: 32 }}><Dots completed={1} phase={phase} /></div>
+      <div style={{ marginTop: 40, color: 'var(--rp-subtle)', fontSize: 13, display: 'flex', gap: 28 }}>
+        <span><kbd style={{ color: 'var(--rp-text)' }}>space</kbd> pause</span>
+        <span><kbd style={{ color: 'var(--rp-text)' }}>n</kbd> next</span>
+        <span><kbd style={{ color: 'var(--rp-text)' }}>b</kbd> back</span>
+        <span><kbd style={{ color: 'var(--rp-text)' }}>r</kbd> reset</span>
+        <span><kbd style={{ color: 'var(--rp-text)' }}>,</kbd> settings</span>
+      </div>
+    </div>
+    {/* status bar */}
+    <div style={{ borderTop: '1px solid var(--rp-hl-med)', padding: '8px 16px', fontSize: 12, color: 'var(--rp-subtle)', background: 'var(--rp-surface)', display: 'flex', justifyContent: 'space-between' }}>
+      <span><span style={{ color: 'var(--rp-iris)' }}> </span> focus.timer</span>
+      <span>50/10/30 · auto on · {mode}</span>
+    </div>
+  </div>
+);
+
+// --------- Variation 2: "Big number" with tmux/nvim-style status bar ---------
+const V2 = ({ phase, time, mode, sound = 'off' }) => (
+  <div className={mode} style={{
+    width: 1200, height: 760, background: 'var(--rp-base)', color: 'var(--rp-text)',
+    fontFamily: "'JetBrains Mono', monospace", display: 'flex', flexDirection: 'column',
+    position: 'relative'
+  }}>
+    {/* center stage */}
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ fontSize: 320, fontWeight: 300, lineHeight: 0.9, letterSpacing: '-0.05em', color: phaseColor(phase), fontVariantNumeric: 'tabular-nums' }}>{time}</div>
+    </div>
+
+    {/* tmux/nvim-style status bar — slim */}
+    <div style={{
+      display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 18,
+      padding: '6px 16px', borderTop: '1px solid var(--rp-hl-med)',
+      background: 'var(--rp-surface)', fontSize: 11, color: 'var(--rp-subtle)', height: 28
+    }}>
+      {/* LEFT: phase + progress + estimate */}
+      <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+        <span style={{ color: phaseColor(phase), fontWeight: 500 }}>{phase}</span>
+        <span style={{ color: 'var(--rp-muted)' }}>·</span>
+        <span><span style={{ color: 'var(--rp-text)' }}>2</span><span style={{ color: 'var(--rp-muted)' }}>/4</span> pomodoros</span>
+        <span style={{ color: 'var(--rp-muted)' }}>·</span>
+        <span>est. <span style={{ color: 'var(--rp-text)' }}>14:25</span></span>
+      </div>
+      {/* CENTER: dots */}
+      <div style={{ transform: 'scale(0.85)' }}><Dots completed={1} phase={phase} /></div>
+      {/* RIGHT: config + auto + sound */}
+      <div style={{ display: 'flex', gap: 14, alignItems: 'center', justifyContent: 'flex-end' }}>
+        <span><span style={{ color: 'var(--rp-text)' }}>50</span><span style={{ color: 'var(--rp-muted)' }}>/</span><span style={{ color: 'var(--rp-text)' }}>10</span><span style={{ color: 'var(--rp-muted)' }}>/</span><span style={{ color: 'var(--rp-text)' }}>30</span></span>
+        <span style={{ color: 'var(--rp-muted)' }}>·</span>
+        <span>auto <span style={{ color: 'var(--rp-foam)' }}>on</span></span>
+        <span style={{ color: 'var(--rp-muted)' }}>·</span>
+        <PlayerWidget sound={sound} />
+      </div>
+    </div>
+  </div>
+);
+
+// --------- Sound player widget (collapsed → expanded) ---------
+const PlayerWidget = ({ sound = 'off' }) => {
+  const [open, setOpen] = useState(sound !== 'off');
+  const [playing, setPlaying] = useState(sound !== 'off');
+  const [current, setCurrent] = useState(sound === 'off' ? 'rain' : sound);
+  const [vol, setVol] = useState(0.6);
+  const sounds = ['rain', 'fire', 'train', 'forest'];
+  const cycle = (dir) => {
+    const i = sounds.indexOf(current);
+    setCurrent(sounds[(i + dir + sounds.length) % sounds.length]);
+  };
+  if (!open) {
+    return (
+      <span onClick={() => setOpen(true)} style={{ cursor: 'pointer', color: 'var(--rp-muted)', display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+        <span></span><span>sound</span>
+      </span>
+    );
+  }
+  return (
+    <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center', color: 'var(--rp-subtle)' }}>
+      <span onClick={() => setPlaying(!playing)} style={{ cursor: 'pointer', color: playing ? 'var(--rp-rose)' : 'var(--rp-muted)' }}>
+        {playing ? '' : ''}
+      </span>
+      <span onClick={() => cycle(-1)} style={{ cursor: 'pointer', color: 'var(--rp-muted)' }}>‹</span>
+      <span style={{ color: 'var(--rp-text)', minWidth: 42, textAlign: 'center' }}>{current}</span>
+      <span onClick={() => cycle(1)} style={{ cursor: 'pointer', color: 'var(--rp-muted)' }}>›</span>
+      {/* volume bar */}
+      <span style={{ display: 'inline-flex', gap: 1, alignItems: 'flex-end', marginLeft: 4 }}>
+        {[0.2, 0.4, 0.6, 0.8, 1.0].map((v, i) => (
+          <span key={i} style={{
+            width: 3, height: 4 + i * 2,
+            background: vol >= v ? 'var(--rp-foam)' : 'var(--rp-hl-med)',
+            cursor: 'pointer'
+          }} onClick={() => setVol(v)} />
+        ))}
+      </span>
+      <span onClick={() => { setPlaying(false); setOpen(false); }} style={{ cursor: 'pointer', color: 'var(--rp-muted)', marginLeft: 4 }}>×</span>
+    </span>
+  );
+};
+
+// --- end player ---
+
+// --------- Variation 3: "ASCII art" — old-school terminal with box-drawing ---------
+const V3 = ({ phase, time, mode }) => {
+  const ascii = `╭─────────────────────────────────────────────────╮
+│                                                 │
+│              [${phase.padEnd(11, ' ')}]                       │
+│                                                 │
+│                                                 │
+│                                                 │
+│                                                 │
+│                                                 │
+╰─────────────────────────────────────────────────╯`;
+  return (
+    <div className={mode} style={{
+      width: 1200, height: 760, background: 'var(--rp-base)', color: 'var(--rp-text)',
+      fontFamily: "'JetBrains Mono', monospace", display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', position: 'relative', padding: 48
+    }}>
+      <div style={{ position: 'relative' }}>
+        <pre style={{ fontSize: 22, lineHeight: 1.2, color: 'var(--rp-muted)', margin: 0 }}>{ascii}</pre>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -45%)', fontSize: 180, fontWeight: 300, color: phaseColor(phase), fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.04em' }}>{time}</div>
+      </div>
+      <div style={{ marginTop: 40 }}><Dots completed={1} phase={phase} /></div>
+      <div style={{ marginTop: 32, fontSize: 12, color: 'var(--rp-subtle)', letterSpacing: '0.2em' }}>
+        ──── 2 / 4 ──── est. 14:25 ────
+      </div>
+      <div style={{ position: 'absolute', bottom: 24, left: 0, right: 0, textAlign: 'center', fontSize: 12, color: 'var(--rp-muted)' }}>
+        [space] pause   [n] next   [b] back   [r] reset   [,] settings
+      </div>
+    </div>
+  );
+};
+
+// --------- Settings modal preview (shared) ---------
+const SettingsModal = ({ mode }) => (
+  <div className={mode} style={{
+    width: 1200, height: 760, background: 'var(--rp-base)', color: 'var(--rp-text)',
+    fontFamily: "'JetBrains Mono', monospace", position: 'relative', overflow: 'hidden'
+  }}>
+    {/* dimmed background timer */}
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.25 }}>
+      <div style={{ fontSize: 320, fontWeight: 300, color: 'var(--rp-iris)', fontVariantNumeric: 'tabular-nums' }}>49:12</div>
+    </div>
+    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }}></div>
+    {/* modal */}
+    <div style={{
+      position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+      width: 640, background: 'var(--rp-surface)', border: '1px solid var(--rp-hl-med)',
+      padding: 32, fontSize: 14
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--rp-hl-med)', paddingBottom: 12, marginBottom: 20, color: 'var(--rp-subtle)' }}>
+        <span>── settings ──</span>
+        <span style={{ color: 'var(--rp-muted)' }}>[esc] close</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div>
+          <div style={{ color: 'var(--rp-gold)', marginBottom: 6 }}>preset</div>
+          <div style={{ display: 'flex', gap: 12, color: 'var(--rp-subtle)' }}>
+            <span style={{ color: 'var(--rp-iris)' }}>[•] focus</span>
+            <span>[ ] classic</span>
+            <span>[ ] custom</span>
+          </div>
+        </div>
+        <div>
+          <div style={{ color: 'var(--rp-gold)', marginBottom: 6 }}>durations</div>
+          <div style={{ color: 'var(--rp-subtle)', lineHeight: 1.9 }}>
+            focus          <span style={{ color: 'var(--rp-text)' }}>50</span> min<br />
+            short break    <span style={{ color: 'var(--rp-text)' }}>10</span> min<br />
+            long break     <span style={{ color: 'var(--rp-text)' }}>30</span> min<br />
+            total sessions <span style={{ color: 'var(--rp-text)' }}>4</span><br />
+            long after     <span style={{ color: 'var(--rp-text)' }}>2</span> sessions
+          </div>
+        </div>
+        <div>
+          <div style={{ color: 'var(--rp-gold)', marginBottom: 6 }}>behavior</div>
+          <div style={{ color: 'var(--rp-subtle)', lineHeight: 1.9 }}>
+            [×] auto-advance<br />
+            [×] desktop notifications<br />
+            alarm  <span style={{ color: 'var(--rp-text)' }}>bell ▾</span>   theme  <span style={{ color: 'var(--rp-text)' }}>{mode} ▾</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const App = () => (
+  <DesignCanvas title="focus timer — round 1: direction explorations">
+    <DCSection id="main" title="V2 — chosen direction (status bar nvim/tmux style)">
+      <DCArtboard id="v2-focus" label="focus phase (foam)" width={1200} height={760}><V2 phase="focus" time="49:12" mode="dark" sound="rain" /></DCArtboard>
+      <DCArtboard id="v2-short" label="short break (iris)" width={1200} height={760}><V2 phase="short" time="09:42" mode="dark" sound="off" /></DCArtboard>
+      <DCArtboard id="v2-long" label="long break (gold)" width={1200} height={760}><V2 phase="long" time="29:30" mode="dark" sound="forest" /></DCArtboard>
+    </DCSection>
+    <DCSection id="settings" title="Settings modal">
+      <DCArtboard id="sd" label="settings overlay" width={1200} height={760}><SettingsModal mode="dark" /></DCArtboard>
+    </DCSection>
+  </DesignCanvas>
+);
+
+ReactDOM.createRoot(document.body.appendChild(document.createElement('div'))).render(<App />);
+</script>
+
+</body>
+</html>

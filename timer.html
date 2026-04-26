@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>focus timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@200;300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-phase="focus" data-running="0" data-finished="0">
+
+<div class="stage">
+  <div class="center">
+    <div class="time" id="time">50:00</div>
+  </div>
+
+  <div class="statusbar">
+    <!-- LEFT -->
+    <div class="sb-left">
+      <span class="sb-phase" id="phase">focus</span>
+      <span class="sb-sep">·</span>
+      <span><span class="sb-strong" id="sbDone">0</span><span class="sb-sep">/</span><span id="sbTotal">4</span> pomodoros</span>
+      <span class="sb-sep">·</span>
+      <span>est. <span class="sb-strong" id="sbEst">—</span></span>
+    </div>
+
+    <!-- CENTER: dots -->
+    <div class="dots" id="dots"></div>
+
+    <!-- RIGHT -->
+    <div class="sb-right">
+      <span><span class="sb-strong" id="sbF">50</span><span class="sb-sep">/</span><span class="sb-strong" id="sbS">10</span><span class="sb-sep">/</span><span class="sb-strong" id="sbL">30</span></span>
+      <span class="sb-sep">·</span>
+      <span class="click" id="autoToggle">auto <span id="sbAuto">on</span></span>
+      <span class="sb-sep">·</span>
+      <span class="player collapsed" id="player">
+        <span class="icon"></span><span class="name">sound</span>
+      </span>
+      <span class="sb-sep">·</span>
+      <span class="click" id="resetBtn" title="reset session"> reset</span>
+      <span class="sb-sep">·</span>
+      <span class="click" id="openSettings"> settings</span>
+    </div>
+  </div>
+</div>
+
+<!-- done overlay -->
+<div class="done-banner" id="doneBanner">
+  work done for today.
+  <div><button id="btnNewDay" type="button">start new session</button></div>
+</div>
+
+<!-- settings modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <span>── settings ──</span>
+      <span class="esc click" id="closeModal">[esc] close</span>
+    </div>
+
+    <section>
+      <h3>preset</h3>
+      <div class="seg" id="segPreset">
+        <button type="button" data-val="focus">focus · 50/10/30</button>
+        <button type="button" data-val="classic">classic · 25/5/30</button>
+        <button type="button" data-val="custom">custom</button>
+      </div>
+      <!-- hidden native radios kept for timer.js compatibility -->
+      <div class="hidden">
+        <input type="radio" name="preset" value="focus">
+        <input type="radio" name="preset" value="classic">
+        <input type="radio" name="preset" value="custom">
+      </div>
+    </section>
+
+    <section>
+      <h3>durations</h3>
+      <div class="grid">
+        <span>focus</span>           <span class="stepper" data-target="cfgFocus" data-min="1" data-max="180" data-suffix="min"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><span class="sx">min</span><input type="number" id="cfgFocus" min="1" max="180"></span>
+        <span>short break</span>     <span class="stepper" data-target="cfgShort" data-min="1" data-max="60"  data-suffix="min"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><span class="sx">min</span><input type="number" id="cfgShort" min="1" max="60"></span>
+        <span>long break</span>      <span class="stepper" data-target="cfgLong"  data-min="1" data-max="120" data-suffix="min"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><span class="sx">min</span><input type="number" id="cfgLong" min="1" max="120"></span>
+        <span>total sessions</span>  <span class="stepper" data-target="cfgTotal" data-min="2" data-max="12"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><input type="number" id="cfgTotal" min="2" max="12"></span>
+        <span>long break after</span><span class="stepper" data-target="cfgAfter" data-min="1" data-max="11" data-suffix="sessions"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><span class="sx">sessions</span><input type="number" id="cfgAfter" min="1" max="11"></span>
+      </div>
+    </section>
+
+    <section>
+      <h3>behavior</h3>
+      <div class="grid">
+        <span>auto-advance</span><span><label class="switch"><input type="checkbox" id="cfgAuto"><span class="track"></span></label></span>
+        <span>silent notifications</span><span><label class="switch"><input type="checkbox" id="cfgNotif"><span class="track"></span></label></span>
+        <span>desktop notifications</span><span><button id="btnNotifReq" type="button" class="ghost-btn">enable</button></span>
+      </div>
+    </section>
+
+    <section>
+      <h3>alarm</h3>
+      <div class="grid">
+        <span>sound</span>
+        <span>
+          <span class="seg seg-sm" id="segAlarm">
+            <button type="button" data-val="bell">bell</button>
+            <button type="button" data-val="chime">chime</button>
+          </span>
+          <button id="btnTestAlarm" type="button" class="ghost-btn" style="margin-left:10px">test</button>
+          <select id="cfgAlarm" class="hidden">
+            <option value="bell">bell</option>
+            <option value="chime">chime</option>
+          </select>
+        </span>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- hidden controls used by timer.js (preserve existing IDs) -->
+<div class="hidden">
+  <button id="btnStart"></button>
+  <button id="btnBack"></button>
+  <button id="btnSkip"></button>
+  <button id="btnReset"></button>
+  <span id="meta"></span>
+</div>
+
+<div class="kbd-hint">[space] pause · [n] next · [b] back · [,] settings · [r] reset</div>
+
+<script src="timer.js"></script>
+<script src="player.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
