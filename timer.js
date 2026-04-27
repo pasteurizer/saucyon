@@ -205,7 +205,7 @@
     }
 
     $meta.textContent = `${s.completedFocus} / ${s.total} focus complete · est. finish: ${s.finished ? '—' : estimateFinish()}`;
-    document.title = (s.running && !s.finished) ? `${fmt(s.remaining)} · ${phaseLabel()}` : 'focus timer';
+    document.title = (s.running && !s.finished) ? `${fmt(s.remaining)} · ${phaseLabel()}` : 'saucy';
   }
 
   function estimateFinish() {
@@ -227,7 +227,7 @@
       }
     }
     const end = new Date(Date.now() + secs * 1000);
-    return end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   }
 
   const $cfgFocus = document.getElementById('cfgFocus');

@@ -16,31 +16,29 @@
   </div>
 
   <div class="statusbar">
-    <!-- LEFT -->
+    <!-- LEFT: phase · pomodoro X/Y · est finish -->
     <div class="sb-left">
       <span class="sb-phase" id="phase">focus</span>
       <span class="sb-sep">·</span>
-      <span><span class="sb-strong" id="sbDone">0</span><span class="sb-sep">/</span><span id="sbTotal">4</span> pomodoros</span>
+      <span>pomodoro <span class="sb-strong" id="sbDone">1</span><span class="sb-sep">/</span><span id="sbTotal">4</span></span>
       <span class="sb-sep">·</span>
       <span>est. <span class="sb-strong" id="sbEst">—</span></span>
     </div>
 
-    <!-- CENTER: dots -->
+    <!-- CENTER: pomodoro dots -->
     <div class="dots" id="dots"></div>
 
-    <!-- RIGHT -->
+    <!-- RIGHT: config · auto · sound · settings -->
     <div class="sb-right">
       <span><span class="sb-strong" id="sbF">50</span><span class="sb-sep">/</span><span class="sb-strong" id="sbS">10</span><span class="sb-sep">/</span><span class="sb-strong" id="sbL">30</span></span>
       <span class="sb-sep">·</span>
       <span class="click" id="autoToggle">auto <span id="sbAuto">on</span></span>
       <span class="sb-sep">·</span>
       <span class="player collapsed" id="player">
-        <span class="icon"></span><span class="name">sound</span>
+        <span class="icon">♪</span><span class="name">sound</span>
       </span>
       <span class="sb-sep">·</span>
-      <span class="click" id="resetBtn" title="reset session"> reset</span>
-      <span class="sb-sep">·</span>
-      <span class="click" id="openSettings"> settings</span>
+      <span class="click" id="openSettings">settings</span>
     </div>
   </div>
 </div>
@@ -66,7 +64,6 @@
         <button type="button" data-val="classic">classic · 25/5/30</button>
         <button type="button" data-val="custom">custom</button>
       </div>
-      <!-- hidden native radios kept for timer.js compatibility -->
       <div class="hidden">
         <input type="radio" name="preset" value="focus">
         <input type="radio" name="preset" value="classic">
@@ -77,11 +74,11 @@
     <section>
       <h3>durations</h3>
       <div class="grid">
-        <span>focus</span>           <span class="stepper" data-target="cfgFocus" data-min="1" data-max="180" data-suffix="min"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><span class="sx">min</span><input type="number" id="cfgFocus" min="1" max="180"></span>
-        <span>short break</span>     <span class="stepper" data-target="cfgShort" data-min="1" data-max="60"  data-suffix="min"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><span class="sx">min</span><input type="number" id="cfgShort" min="1" max="60"></span>
-        <span>long break</span>      <span class="stepper" data-target="cfgLong"  data-min="1" data-max="120" data-suffix="min"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><span class="sx">min</span><input type="number" id="cfgLong" min="1" max="120"></span>
+        <span>focus</span>           <span class="stepper" data-target="cfgFocus" data-min="1" data-max="180"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><span class="sx">min</span><input type="number" id="cfgFocus" min="1" max="180"></span>
+        <span>short break</span>     <span class="stepper" data-target="cfgShort" data-min="1" data-max="60"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><span class="sx">min</span><input type="number" id="cfgShort" min="1" max="60"></span>
+        <span>long break</span>      <span class="stepper" data-target="cfgLong"  data-min="1" data-max="120"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><span class="sx">min</span><input type="number" id="cfgLong" min="1" max="120"></span>
         <span>total sessions</span>  <span class="stepper" data-target="cfgTotal" data-min="2" data-max="12"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><input type="number" id="cfgTotal" min="2" max="12"></span>
-        <span>long break after</span><span class="stepper" data-target="cfgAfter" data-min="1" data-max="11" data-suffix="sessions"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><span class="sx">sessions</span><input type="number" id="cfgAfter" min="1" max="11"></span>
+        <span>long break after</span><span class="stepper" data-target="cfgAfter" data-min="1" data-max="11"><button type="button" data-d="-1">−</button><span class="val"></span><button type="button" data-d="1">+</button><span class="sx">sessions</span><input type="number" id="cfgAfter" min="1" max="11"></span>
       </div>
     </section>
 
@@ -123,7 +120,30 @@
   <span id="meta"></span>
 </div>
 
-<div class="kbd-hint">[space] pause · [n] next · [b] back · [,] settings · [r] reset</div>
+<!-- keyboard hint bar -->
+<div class="kbd-hint">
+  <span class="kbd-action" data-action="start">
+    <span class="key">space</span><span class="label">pause/start</span>
+  </span>
+  <span class="kbd-sep">·</span>
+  <span class="kbd-action" data-action="next">
+    <span class="key">n</span><span class="label">next</span>
+  </span>
+  <span class="kbd-sep">·</span>
+  <span class="kbd-action" data-action="back">
+    <span class="key">b</span><span class="label">back</span>
+  </span>
+  <span class="kbd-sep">·</span>
+  <span class="kbd-action" data-action="reset">
+    <span class="key">r</span><span class="label">reset</span>
+  </span>
+  <span class="kbd-sep">·</span>
+  <span class="kbd-action" data-action="settings">
+    <span class="key">,</span><span class="label">settings</span>
+  </span>
+</div>
+
+<span class="version-label">v0.1</span>
 
 <script src="timer.js"></script>
 <script src="player.js"></script>
