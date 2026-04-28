@@ -11,6 +11,9 @@
   const $sbDone = document.getElementById('sbDone');
   const $sbTotal = document.getElementById('sbTotal');
   const $sbEst = document.getElementById('sbEst');
+  const $sbLongIn = document.getElementById('sbLongIn');
+  const $sbLongHint = document.getElementById('sbLongHint');
+  const $sbLongSep = document.getElementById('sbLongSep');
   const $sbF = document.getElementById('sbF');
   const $sbS = document.getElementById('sbS');
   const $sbL = document.getElementById('sbL');
@@ -41,6 +44,20 @@
       $sbDone.textContent = current;
       $sbTotal.textContent = total;
       $sbEst.textContent = m[3];
+
+      // long-break countdown: "long in N" where N = longAfter - completedFocus
+      // Hide when finished, when long break already passed, or during the long break itself
+      const longAfter = parseInt(document.getElementById('cfgAfter').value, 10);
+      const remaining = longAfter - done;
+      const showLongHint = !finished && remaining > 0 && longAfter > 0 && longAfter < total;
+      if (showLongHint) {
+        $sbLongIn.textContent = remaining;
+        $sbLongHint.classList.remove('hidden');
+        $sbLongSep.classList.remove('hidden');
+      } else {
+        $sbLongHint.classList.add('hidden');
+        $sbLongSep.classList.add('hidden');
+      }
     }
     // durations
     const f = document.getElementById('cfgFocus').value;

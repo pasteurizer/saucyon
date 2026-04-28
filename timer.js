@@ -145,7 +145,6 @@
 
   const $time = document.getElementById('time');
   const $phase = document.getElementById('phase');
-  const $dots = document.getElementById('dots');
   const $meta = document.getElementById('meta');
   const $btnStart = document.getElementById('btnStart');
   const $btnBack = document.getElementById('btnBack');
@@ -180,29 +179,6 @@
     document.body.dataset.phase = s.phase;
     document.body.dataset.running = s.running ? '1' : '0';
     document.body.dataset.finished = s.finished ? '1' : '0';
-
-    $dots.innerHTML = '';
-    const lb = longBreakAfter();
-    for (let i = 0; i < s.total; i++) {
-      if (i === lb && lb > 0) {
-        const ld = document.createElement('div');
-        ld.className = 'dot long';
-        if (s.completedFocus > lb) ld.classList.add('done');
-        else if (s.completedFocus === lb && s.phase === 'long' && !s.finished) {
-          ld.classList.add('current');
-          if (s.running) ld.classList.add('running');
-        }
-        $dots.appendChild(ld);
-      }
-      const d = document.createElement('div');
-      d.className = 'dot';
-      if (i < s.completedFocus) d.classList.add('done');
-      else if (i === s.completedFocus && s.phase === 'focus' && !s.finished) {
-        d.classList.add('current');
-        if (s.running) d.classList.add('running');
-      }
-      $dots.appendChild(d);
-    }
 
     $meta.textContent = `${s.completedFocus} / ${s.total} focus complete · est. finish: ${s.finished ? '—' : estimateFinish()}`;
     document.title = (s.running && !s.finished) ? `${fmt(s.remaining)} · ${phaseLabel()}` : 'saucy';

@@ -61,7 +61,6 @@ body[data-finished="1"]  .time { color: var(--rp-muted); }
 
 /* ---------- status bar ---------- */
 .statusbar {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -77,7 +76,7 @@ body[data-finished="1"]  .time { color: var(--rp-muted); }
   white-space: nowrap;
   flex-shrink: 0;
 }
-/* Left column: stacked — top row is text info, bottom row is dots */
+/* Left column: phase · pomodoro X/Y · est. finish */
 .sb-left {
   display: flex;
   flex-direction: row;
@@ -92,27 +91,6 @@ body[data-finished="1"]  .time { color: var(--rp-muted); }
 body[data-phase="focus"] .sb-phase { color: var(--rp-foam); }
 body[data-phase="short"] .sb-phase { color: var(--rp-iris); }
 body[data-phase="long"]  .sb-phase { color: var(--rp-gold); }
-
-/* dots — absolutely centered inside the statusbar */
-.dots {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  border: 1px solid var(--rp-muted); background: transparent;
-  transition: background 0.3s, border-color 0.3s;
-}
-.dot.done { background: var(--rp-pine); border-color: var(--rp-pine); }
-.dot.current { background: var(--rp-rose); border-color: var(--rp-rose); }
-.dot.long { width: 3px; height: 12px; border: 0; border-radius: 0; background: var(--rp-muted); }
-.dot.long.done { background: var(--rp-pine); }
-.dot.long.current { background: var(--rp-rose); }
 
 /* clickable bits */
 .click { cursor: pointer; user-select: none; }
