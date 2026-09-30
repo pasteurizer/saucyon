@@ -97,8 +97,20 @@
   });
 
   // settings modal
-  function openModal() { $modalBg.classList.add('show'); refreshSegs(); refreshSteppers(); }
-  function closeModal() { $modalBg.classList.remove('show'); }
+  // closing plays a short fade-out (.closing) before hiding; the duration matches styles.css
+  let closeTimer = null;
+  function isModalOpen() { return $modalBg.classList.contains('show') && !$modalBg.classList.contains('closing'); }
+  function openModal() {
+    clearTimeout(closeTimer);
+    $modalBg.classList.remove('closing');
+    $modalBg.classList.add('show');
+    refreshSegs(); refreshSteppers();
+  }
+  function closeModal() {
+    if (!isModalOpen()) return;
+    $modalBg.classList.add('closing');
+    closeTimer = setTimeout(() => $modalBg.classList.remove('show', 'closing'), 180);
+  }
   $openSettings.addEventListener('click', openModal);
   $closeModal.addEventListener('click', closeModal);
   $modalBg.addEventListener('click', (e) => { if (e.target === $modalBg) closeModal(); });
@@ -340,7 +352,7 @@
     else if (e.key === 'n' || e.key === 'ArrowRight') document.getElementById('btnSkip').click();
     else if (e.key === 'b' || e.key === 'ArrowLeft') document.getElementById('btnBack').click();
     else if (e.key === 'r') document.getElementById('btnReset').click();
-    else if (e.key === ',') $modalBg.classList.contains('show') ? closeModal() : openModal();
+    else if (e.key === ',') isModalOpen() ? closeModal() : openModal();
     else if (e.key === 'Escape') closeModal();
   });
 })();

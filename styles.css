@@ -341,7 +341,16 @@ body[data-finished="1"] .time { text-shadow: none; }
   align-items: center; justify-content: center;
   z-index: 100;
 }
-.modal-bg.show { display: flex; }
+.modal-bg.show { display: flex; animation: fade-in 0.18s var(--ease); }
+/* closing: ui.js keeps .show on for the length of the fade, then removes both */
+.modal-bg.closing { animation: fade-out 0.18s var(--ease) forwards; }
+.modal-bg.closing .modal { animation: modal-out 0.18s var(--ease) forwards; }
+@keyframes fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes modal-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(10px) scale(0.985); }
+}
 .modal {
   /* fixed width sized for jetbrains mono (the widest font), so switching fonts never resizes the window */
   width: 480px; max-width: 92vw;
@@ -667,6 +676,6 @@ body[data-finished="1"] .time { text-shadow: none; }
 
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .glow, .modal, .done-banner.show { animation: none !important; }
+  .glow, .modal, .modal-bg, .done-banner.show { animation: none !important; }
   * { transition-duration: 0.01ms !important; }
 }
