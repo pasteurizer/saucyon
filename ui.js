@@ -331,7 +331,7 @@
     // ignore typing in inputs or contenteditable steppers
     const ae = document.activeElement;
     if (['INPUT', 'SELECT', 'TEXTAREA'].includes(ae?.tagName) || ae?.isContentEditable) {
-      if (e.key === 'Escape') { ae.blur(); closeModal(); }
+      if (e.key === 'Escape' || e.key === ',') { e.preventDefault(); ae.blur(); closeModal(); }
       return;
     }
     // leave browser/OS shortcuts alone (cmd+r would otherwise also trigger reset, ctrl+n next, …)
@@ -340,7 +340,7 @@
     else if (e.key === 'n' || e.key === 'ArrowRight') document.getElementById('btnSkip').click();
     else if (e.key === 'b' || e.key === 'ArrowLeft') document.getElementById('btnBack').click();
     else if (e.key === 'r') document.getElementById('btnReset').click();
-    else if (e.key === ',') openModal();
+    else if (e.key === ',') $modalBg.classList.contains('show') ? closeModal() : openModal();
     else if (e.key === 'Escape') closeModal();
   });
 })();

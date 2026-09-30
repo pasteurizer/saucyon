@@ -27,7 +27,7 @@
       const raw = localStorage.getItem(LS_KEY);
       if (!raw) return { ...defaultState };
       const parsed = JSON.parse(raw);
-      return { ...defaultState, ...parsed, running: false };
+      return { ...defaultState, ...parsed, running: false, reloadedWhileRunning: !!parsed.running };
     } catch { return { ...defaultState }; }
   }
   function save() { localStorage.setItem(LS_KEY, JSON.stringify(s)); }
@@ -44,6 +44,7 @@
     if (s.running || s.finished) return;
     s.running = true;
     lastTick = Date.now();
+    save(); // remember we were running, so a reload restarts this phase (see bottom)
     tickHandle = setInterval(tick, 250);
     render();
   }
@@ -99,6 +100,11 @@
     }
     s.remaining = phaseDuration(s.phase) * 60;
   }
+
+  // back works like a music player: restart the current phase, or — if it has barely started
+  // (a second press) — go to the previous one
+  const BACK_GRACE = 1; // seconds
+  function elapsedInPhase() { return phaseDuration(s.phase) * 60 - s.remaining; }
 
   function phaseDuration(p) {
     return p === 'focus' ? s.focus : p === 'short' ? s.short : s.long;
@@ -172,7 +178,7 @@
       $phase.textContent = phaseLabel();
       $btnStart.disabled = false; $btnSkip.disabled = false;
       $btnStart.textContent = s.running ? 'pause' : 'start';
-      $btnBack.disabled = s.completedFocus === 0 && s.phase === 'focus';
+      $btnBack.disabled = s.completedFocus === 0 && s.phase === 'focus' && elapsedInPhase() <= BACK_GRACE;
     }
 
     // expose phase + running on body for CSS to hook into
@@ -276,7 +282,8 @@
   $btnBack.addEventListener('click', () => {
     const wasRunning = s.running;
     pause();
-    rewindPhase();
+    if (elapsedInPhase() > BACK_GRACE) s.remaining = phaseDuration(s.phase) * 60;
+    else rewindPhase();
     save();
     if (wasRunning) start(); else render();
   });
@@ -290,6 +297,10 @@
   });
 
   syncSettingsUI();
+  // reloading mid-run is a conscious reset: the current phase starts over, paused
+  // (progress through the session is kept). pressing start also lets the alarm sound through.
+  if (s.reloadedWhileRunning) s.remaining = phaseDuration(s.phase) * 60;
+  delete s.reloadedWhileRunning;
   if (!s.running && (s.remaining > phaseDuration(s.phase) * 60 || s.remaining <= 0)) {
     s.remaining = phaseDuration(s.phase) * 60;
   }

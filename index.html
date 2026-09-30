@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#232136">
+<meta name="theme-color" content="#faf9f5">
 <title>saucy</title>
 <script>
   // apply saved theme + font before first paint (no flash). ui.js owns the settings afterwards.
@@ -11,7 +11,7 @@
     const THEME_FONT = { 'rose-pine': 'jetbrains', 'koda-light': 'iosevka' };
     let a = {};
     try { a = JSON.parse(localStorage.getItem('focusTimer.appearance') || '{}'); } catch {}
-    const theme = THEME_FONT[a.theme] ? a.theme : 'rose-pine';
+    const theme = THEME_FONT[a.theme] ? a.theme : 'koda-light'; // default theme
     const font = ['jetbrains', 'iosevka'].includes(a.font) ? a.font : THEME_FONT[theme];
     document.documentElement.dataset.theme = theme;
     document.documentElement.dataset.font = font;
