@@ -318,6 +318,14 @@
     });
   });
 
+  // confirm before reload/close while the timer is running: timer.js only saves on pause or
+  // phase end, so leaving mid-run loses the progress and comes back stopped. paused is already saved.
+  window.addEventListener('beforeunload', (e) => {
+    if (document.body.dataset.running !== '1' || document.body.dataset.finished === '1') return;
+    e.preventDefault();
+    e.returnValue = ''; // older chrome/safari need this to show the prompt
+  });
+
   // keyboard shortcuts
   window.addEventListener('keydown', (e) => {
     // ignore typing in inputs or contenteditable steppers
