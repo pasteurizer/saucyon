@@ -10,7 +10,8 @@
 
   const state = (() => {
     const def = { open: false, playing: false, sound: 'rain', vol: 0.6 };
-    try { return Object.assign(def, JSON.parse(localStorage.getItem(LS) || '{}')); }
+    // playback never survives a reload (browsers block autoplay), so don't restore "playing"
+    try { return Object.assign(def, JSON.parse(localStorage.getItem(LS) || '{}'), { playing: false }); }
     catch { return def; }
   })();
   const save = () => localStorage.setItem(LS, JSON.stringify(state));

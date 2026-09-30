@@ -125,6 +125,42 @@
     });
   });
 
+  // --- appearance: theme + font ---
+  // each theme has a default font; picking a theme resets the font to it, and the font
+  // can then be overridden independently. the <head> script applies this before first paint.
+  const APPEARANCE_KEY = 'focusTimer.appearance';
+  const THEMES = {
+    'rose-pine':  { font: 'jetbrains', meta: '#232136' },
+    'koda-light': { font: 'iosevka',   meta: '#faf9f5' },
+  };
+  const FONTS = ['jetbrains', 'iosevka'];
+  const $root = document.documentElement;
+  const appearance = { theme: $root.dataset.theme, font: $root.dataset.font };
+
+  function applyAppearance() {
+    $root.dataset.theme = appearance.theme;
+    $root.dataset.font = appearance.font;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEMES[appearance.theme].meta);
+    document.querySelectorAll('#segTheme button').forEach(b => b.classList.toggle('active', b.dataset.val === appearance.theme));
+    document.querySelectorAll('#segFont button').forEach(b => b.classList.toggle('active', b.dataset.val === appearance.font));
+    try { localStorage.setItem(APPEARANCE_KEY, JSON.stringify(appearance)); } catch {}
+  }
+  document.querySelectorAll('#segTheme button').forEach(b => {
+    b.addEventListener('click', () => {
+      appearance.theme = b.dataset.val;
+      appearance.font = THEMES[appearance.theme].font;
+      applyAppearance();
+    });
+  });
+  document.querySelectorAll('#segFont button').forEach(b => {
+    b.addEventListener('click', () => {
+      if (!FONTS.includes(b.dataset.val)) return;
+      appearance.font = b.dataset.val;
+      applyAppearance();
+    });
+  });
+  applyAppearance();
+
   // --- steppers: hold-to-repeat + direct keyboard input ---
   function isRunning() { return document.body.dataset.running === '1'; }
 
@@ -257,6 +293,8 @@
       if (e.key === 'Escape') { ae.blur(); closeModal(); }
       return;
     }
+    // leave browser/OS shortcuts alone (cmd+r would otherwise also trigger reset, ctrl+n next, …)
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === ' ') { e.preventDefault(); document.getElementById('btnStart').click(); }
     else if (e.key === 'n' || e.key === 'ArrowRight') document.getElementById('btnSkip').click();
     else if (e.key === 'b' || e.key === 'ArrowLeft') document.getElementById('btnBack').click();
