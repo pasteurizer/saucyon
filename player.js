@@ -1,10 +1,12 @@
-/* ambient sound player — uses real mp3 loops, persisted state.
-   v0.2 */
+/* ambient sound player — seamless mp3 loops played gaplessly, persisted state.
+   v0.3 */
 (() => {
+  // files are pre-made seamless loops (end crossfaded into start). rate = the file's sample
+  // rate: decoding at it avoids upsampling, which roughly halves the memory a long loop needs.
   const SOUNDS = [
-    { id: 'rain',        label: 'rain',        src: 'sounds/rain.mp3' },
-    { id: 'train-long',  label: 'train 6m',    src: 'sounds/train-long.mp3' },
-    { id: 'train-short', label: 'train 1m',    src: 'sounds/train-short.mp3', endAt: 60 },
+    { id: 'rain',        label: 'rain',        src: 'sounds/rain.mp3',      rate: 44100 },
+    { id: 'storm',       label: 'storm',       src: 'sounds/storm.mp3',     rate: 44100 },
+    { id: 'fireplace',   label: 'fireplace',   src: 'sounds/fireplace.mp3', rate: 44100 },
   ];
   const LS = 'focusTimer.player';
 
@@ -16,34 +18,79 @@
   })();
   const save = () => localStorage.setItem(LS, JSON.stringify(state));
 
-  // single audio element, swap src as needed
-  const audio = new Audio();
-  audio.loop = true;
-  audio.preload = 'auto';
-  audio.volume = state.vol;
-
   function currentDef() { return SOUNDS.find(s => s.id === state.sound) || SOUNDS[0]; }
 
-  function loadSound() {
-    const def = currentDef();
-    if (!audio.src.endsWith(def.src)) {
-      audio.src = def.src;
-    }
-    audio.ontimeupdate = null;
-    if (def.endAt) {
-      audio.ontimeupdate = () => {
-        if (audio.currentTime >= def.endAt) audio.currentTime = 0;
-      };
-    }
+  // ---------- engine ----------
+  // web audio: the whole loop is decoded and repeated sample-accurately (an <audio loop>
+  // leaves a small gap at every repeat). one AudioContext per playing sound, closed on
+  // stop/switch so its decoded audio is freed. soft fades on start/stop/switch.
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const FADE = 0.12; // time constant (s) — ~0.4s to settle
+  let eng = null;    // { ctx, out } for the sound currently playing
+
+  // mp3 files can decode with a few ms of encoder padding at either end; loop only the real audio
+  function loopBounds(buf) {
+    const ch = buf.getChannelData(0), max = Math.min(ch.length >> 1, buf.sampleRate * 0.2);
+    let a = 0, b = ch.length;
+    while (a < max && Math.abs(ch[a]) < 1e-4) a++;
+    while (b > ch.length - max && Math.abs(ch[b - 1]) < 1e-4) b--;
+    return [a / buf.sampleRate, b / buf.sampleRate];
   }
 
+  // fallback when fetch/decoding isn't possible (e.g. page opened from file://): plain looping element
+  const fallback = new Audio();
+  fallback.loop = true;
+
   function play() {
-    loadSound();
-    audio.play().catch(() => { state.playing = false; render(); save(); });
+    stop();
+    const def = currentDef();
+    if (!AC) return playFallback(def);
+    let ctx;
+    try { ctx = new AC({ sampleRate: def.rate }); }
+    catch { try { ctx = new AC(); } catch { return playFallback(def); } }
+    const out = ctx.createGain();
+    out.gain.value = 0;
+    out.connect(ctx.destination);
+    const e = eng = { ctx, out };
+    fetch(def.src)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then(data => new Promise((ok, fail) => ctx.decodeAudioData(data, ok, fail)))
+      .then(buf => {
+        if (eng !== e) return; // stopped or switched while loading
+        const [a, b] = loopBounds(buf);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
+        src.loopStart = a;
+        src.loopEnd = b;
+        src.connect(out);
+        src.start(0, a);
+        out.gain.setTargetAtTime(state.vol, ctx.currentTime, FADE);
+      })
+      .catch(() => {
+        if (eng !== e) return;
+        eng = null;
+        ctx.close();
+        playFallback(def);
+      });
+  }
+  function playFallback(def) {
+    if (!fallback.src.endsWith(def.src)) fallback.src = def.src;
+    fallback.volume = state.vol;
+    fallback.play().catch(() => { state.playing = false; render(); save(); });
   }
   function stop() {
-    audio.pause();
-    audio.currentTime = 0;
+    fallback.pause();
+    fallback.currentTime = 0;
+    if (!eng) return;
+    const { ctx, out } = eng;
+    eng = null;
+    out.gain.setTargetAtTime(0, ctx.currentTime, FADE);
+    setTimeout(() => ctx.close(), FADE * 6 * 1000);
+  }
+  function setVolume() {
+    fallback.volume = state.vol;
+    if (eng) eng.out.gain.setTargetAtTime(state.vol, eng.ctx.currentTime, 0.03);
   }
 
   // 5 volume levels; rendered as rising bars
@@ -64,7 +111,6 @@
   };
 
   function render() {
-    audio.volume = state.vol;
     if (!state.open) {
       $player.className = 'player collapsed';
       $player.innerHTML = `<span class="icon">${IC.note}</span><span class="name">sound</span>`;
@@ -97,12 +143,16 @@
     } else if (act === 'prev' || act === 'next') {
       const i = SOUNDS.findIndex(s => s.id === state.sound);
       const dir = act === 'next' ? 1 : -1;
-      state.sound = SOUNDS[(i + dir + SOUNDS.length) % SOUNDS.length].id;
-      if (state.playing) play();
+      const next = SOUNDS[(i + dir + SOUNDS.length) % SOUNDS.length].id;
+      if (next !== state.sound) {   // with a single sound, don't restart it
+        state.sound = next;
+        if (state.playing) play();
+      }
     } else if (act === 'close') {
       state.playing = false; state.open = false; stop();
     } else if (target.dataset.v) {
       state.vol = +target.dataset.v;
+      setVolume();
     }
     render(); save();
   });
