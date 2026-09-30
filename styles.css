@@ -76,6 +76,14 @@
 :root[data-font="iosevka"] { --font: 'Iosevka', 'Iosevka Term', 'Iosevka Nerd Font', ui-monospace, Menlo, monospace; --time-tracking: -0.02em; }
 
 :root {
+  /* settings modal vertical rhythm: full size on screens ≥ 860px tall, shrinking linearly to the
+     compact size at ≤ 700px, so the whole modal fits without scrolling on laptop screens.
+     (max-height still scrolls as a last resort on very short windows) */
+  --m-t:       clamp(0px, calc((100vh - 700px) / 160), 1px);  /* 0px → 1px as height goes 700 → 860 */
+  --m-pad-y:   calc(16px + 10 * var(--m-t));
+  --m-section: calc(12px + 10 * var(--m-t));
+  --m-title:   calc(8px + 4 * var(--m-t));
+  --m-row:     calc(5px + 5 * var(--m-t));
   --radius-sm: 5px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -335,16 +343,17 @@ body[data-finished="1"] .time { text-shadow: none; }
 }
 .modal-bg.show { display: flex; }
 .modal {
-  width: 640px; max-width: 92vw;
+  /* fixed width sized for jetbrains mono (the widest font), so switching fonts never resizes the window */
+  width: 480px; max-width: 92vw;
   background: var(--surface);
   border: 1px solid var(--hl-med);
   border-radius: var(--radius-lg);
   box-shadow:
     0 24px 70px var(--shadow),
     0 0 0 1px color-mix(in srgb, var(--text) 2%, transparent) inset;
-  padding: 26px 32px 30px;
+  padding: var(--m-pad-y) 32px var(--m-pad-y);
   font-size: 13px;
-  max-height: 90vh; overflow: auto;
+  max-height: 94vh; overflow: auto;
   animation: modal-in 0.18s var(--ease);
 }
 @keyframes modal-in {
@@ -354,16 +363,23 @@ body[data-finished="1"] .time { text-shadow: none; }
 .modal::-webkit-scrollbar { width: 8px; }
 .modal::-webkit-scrollbar-thumb { background: var(--hl-med); border-radius: 4px; }
 
-.modal-head {
-  display: flex; justify-content: space-between; align-items: baseline;
-  border-bottom: 1px solid var(--hl-med);
-  padding-bottom: 12px; margin-bottom: 22px;
-  color: var(--subtle);
+/* close hint: no header row, it sits quietly on the left of the first section title.
+   absolute so it doesn't push the centered title off-center; same font metrics as h3 so they line up */
+.modal { position: relative; }
+.modal-esc {
+  position: absolute;
+  top: var(--m-pad-y); left: 32px;   /* = modal padding */
+  font-size: 11px;
+  line-height: normal;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  opacity: 0.6;
 }
-.modal-head .esc { color: var(--muted); font-size: 12px; }
-.modal-head .esc:hover { color: var(--text); background: transparent; }
+.modal-esc:hover { color: var(--text); background: transparent; opacity: 1; }
+/* keep the first title's rules clear of the [esc] hint, symmetrically so it stays centered */
+.modal section:first-of-type h3 { padding: 0 52px; }
 
-.modal section { margin-bottom: 22px; }
+.modal section { margin-bottom: var(--m-section); }
 .modal section:last-child { margin-bottom: 4px; }
 .modal h3 {
   display: flex;
@@ -371,23 +387,30 @@ body[data-finished="1"] .time { text-shadow: none; }
   gap: 10px;
   color: var(--warm);
   font-size: 11px; font-weight: 500;
-  margin: 0 0 12px;
+  margin: 0 0 var(--m-title);
   letter-spacing: 0.14em;
 }
+/* centered title with a rule fading out on each side: ──── preset ──── */
+.modal h3::before,
 .modal h3::after {
   content: '';
   flex: 1;
   height: 1px;
-  background: linear-gradient(to right, var(--hl-med), transparent);
+  background: linear-gradient(to right, transparent, var(--hl-med));
 }
+.modal h3::after { background: linear-gradient(to left, transparent, var(--hl-med)); }
 .modal .grid {
-  display: grid; grid-template-columns: 160px 1fr;
-  gap: 10px 14px;
+  display: grid; grid-template-columns: 1fr auto;
+  gap: var(--m-row) 14px;
   color: var(--subtle);
   align-items: center;
 }
-/* grid items are blockified, so without this steppers/segments stretch to the full column */
+/* labels hug the left edge, controls hug the right edge */
 .modal .grid > * { justify-self: start; }
+.modal .grid > :nth-child(even) { justify-self: end; }
+/* a segment standing alone (preset) spans the full width, options share it equally */
+.seg.seg-full { display: flex; }
+.seg-full button { flex: 1 1 auto; white-space: nowrap; }
 .modal .stepper input[type=number] { display: none; }
 
 /* segmented selector */
