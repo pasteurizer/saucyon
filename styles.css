@@ -88,6 +88,7 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --ease: cubic-bezier(0.25, 0.8, 0.35, 1);
+  --ease-exit: cubic-bezier(0.65, 0, 0.75, 0.2); /* exact mirror of --ease: closing plays the opening backwards */
 }
 
 /* phase accent — one variable drives digits, glow, progress, labels */
@@ -343,8 +344,8 @@ body[data-finished="1"] .time { text-shadow: none; }
 }
 .modal-bg.show { display: flex; animation: fade-in 0.18s var(--ease); }
 /* closing: ui.js keeps .show on for the length of the fade, then removes both */
-.modal-bg.closing { animation: fade-out 0.18s var(--ease) forwards; }
-.modal-bg.closing .modal { animation: modal-out 0.18s var(--ease) forwards; }
+.modal-bg.closing { animation: fade-out 0.18s var(--ease-exit) forwards; }
+.modal-bg.closing .modal { animation: modal-out 0.18s var(--ease-exit) forwards; }
 @keyframes fade-in  { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes modal-out {
