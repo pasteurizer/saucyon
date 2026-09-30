@@ -169,9 +169,9 @@
     document.querySelectorAll('.stepper').forEach(st => {
       const inp = document.getElementById(st.dataset.target);
       const display = st.querySelector('.val');
-      // Show the real input for keyboard editing, hide display span
-      // We keep both in sync
-      display.textContent = inp.value || '—';
+      // mirror the hidden input into the display span, except while the user is typing in it
+      // (this runs every 300ms and used to wipe out whatever was being typed)
+      if (document.activeElement !== display) display.textContent = inp.value || '—';
       st.classList.toggle('locked', locked);
       st.querySelectorAll('button[data-d]').forEach(b => b.disabled = locked);
       // Make the display value editable directly
@@ -181,33 +181,44 @@
         display.setAttribute('spellcheck', 'false');
         display.setAttribute('inputmode', 'numeric');
 
-        display.addEventListener('focus', () => {
-          // Select all text on focus
-          const range = document.createRange();
-          range.selectNodeContents(display);
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(range);
-        });
+        // select everything on focus so typing replaces the value; deferred because the
+        // click that focused it would otherwise collapse the selection right after
+        display.addEventListener('focus', () => setTimeout(() => {
+          if (document.activeElement === display) selectAll(display);
+        }, 0));
 
         display.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') { e.preventDefault(); display.blur(); }
-          if (e.key === 'Escape') { e.preventDefault(); display.textContent = inp.value; display.blur(); }
-          // Only allow digits and control keys
-          if (!/^\d$/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) {
+          // enter commits, escape cancels the edit (and stays in the modal)
+          if (e.key === 'Enter') { e.preventDefault(); display.blur(); return; }
+          if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); display.textContent = inp.value; display.blur(); return; }
+          // up/down arrows step like the −/+ buttons
+          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
             e.preventDefault();
+            stepValue(st, e.key === 'ArrowUp' ? 1 : -1);
+            display.textContent = inp.value;
+            selectAll(display);
+            return;
+          }
+          if (e.metaKey || e.ctrlKey) return; // copy / paste / select-all
+          if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'].includes(e.key)) return;
+          // digits only, and at most 2 of them (unless replacing a selection)
+          const replacing = !window.getSelection().isCollapsed;
+          if (!/^\d$/.test(e.key) || (!replacing && display.textContent.length >= 2)) e.preventDefault();
+        });
+
+        // pasted text or anything else that slips past keydown: keep only the first 2 digits
+        display.addEventListener('input', () => {
+          const clean = display.textContent.replace(/\D/g, '').slice(0, 2);
+          if (clean !== display.textContent) {
+            display.textContent = clean;
+            window.getSelection().collapse(display, display.childNodes.length);
           }
         });
 
         display.addEventListener('blur', () => {
-          if (isRunning()) { display.textContent = inp.value; return; }
           const raw = parseInt(display.textContent, 10);
-          const min = +st.dataset.min;
-          const max = +st.dataset.max;
-          if (!isNaN(raw)) {
-            inp.value = Math.max(min, Math.min(max, raw));
-            inp.dispatchEvent(new Event('change'));
-          }
+          // empty / garbage / running → keep the previous value
+          if (!isRunning() && !isNaN(raw)) setValue(st, raw);
           display.textContent = inp.value;
         });
       }
@@ -222,17 +233,39 @@
   let holdTimer = null;
   let holdInterval = null;
 
-  function stepValue(st, delta) {
-    if (isRunning()) return;
+  function selectAll(el) {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  // clamp to the stepper's range (and the input's own max, which timer.js lowers for
+  // "long break after"), and only notify timer.js on a real change — every change
+  // switches the preset to custom and restarts the current phase's countdown.
+  function setValue(st, n) {
     const inp = document.getElementById(st.dataset.target);
     const min = +st.dataset.min;
-    const max = +st.dataset.max;
-    const cur = +inp.value || min;
-    const next = Math.max(min, Math.min(+inp.max || max, cur + delta));
+    const max = Math.min(+st.dataset.max, +inp.max || Infinity);
+    const next = Math.max(min, Math.min(max, n));
+    if (next === +inp.value) return;
     inp.value = next;
     inp.dispatchEvent(new Event('change'));
     setTimeout(() => { refreshSteppers(); refreshSegs(); }, 0);
   }
+
+  function stepValue(st, delta) {
+    if (isRunning()) return;
+    const inp = document.getElementById(st.dataset.target);
+    setValue(st, (+inp.value || +st.dataset.min) + delta);
+  }
+
+  // saved durations from before the 59-minute cap get pulled back into range
+  document.querySelectorAll('.stepper').forEach(st => {
+    const v = +document.getElementById(st.dataset.target).value;
+    if (v > +st.dataset.max) setValue(st, v);
+  });
 
   document.querySelectorAll('.stepper').forEach(st => {
     st.querySelectorAll('button[data-d]').forEach(btn => {
